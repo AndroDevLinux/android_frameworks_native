@@ -27,8 +27,8 @@
 // ---------------------------------------------------------------------------
 namespace android {
 
-template <typename T> class Flattenable;
 template <typename T> class LightFlattenable;
+class Flattenable;
 class IBinder;
 class IPCThreadState;
 class ProcessState;
@@ -106,7 +106,8 @@ public:
 
 
     template<typename T>
-    status_t            write(const Flattenable<T>& val);
+    status_t            write(const Flattenable& val);
+
 
     template<typename T>
     status_t            write(const LightFlattenable<T>& val);
@@ -162,8 +163,7 @@ public:
     sp<IBinder>         readStrongBinder() const;
     wp<IBinder>         readWeakBinder() const;
 
-    template<typename T>
-    status_t            read(Flattenable<T>& val) const;
+    status_t            read(Flattenable& val) const;
 
     template<typename T>
     status_t            read(LightFlattenable<T>& val) const;
@@ -276,11 +276,10 @@ private:
         virtual status_t unflatten(void const* buffer, size_t size, int const* fds, size_t count) = 0;
     };
 
-    template<typename T>
     class FlattenableHelper : public FlattenableHelperInterface {
         friend class Parcel;
-        const Flattenable<T>& val;
-        explicit FlattenableHelper(const Flattenable<T>& val) : val(val) { }
+        const Flattenable& val;
+        explicit FlattenableHelper(const Flattenable& val) : val(val) { }
 
     public:
         virtual size_t getFlattenedSize() const {
@@ -293,7 +292,7 @@ private:
             return val.flatten(buffer, size, fds, count);
         }
         virtual status_t unflatten(void const* buffer, size_t size, int const* fds, size_t count) {
-            return const_cast<Flattenable<T>&>(val).unflatten(buffer, size, fds, count);
+            return const_cast<Flattenable&>(val).unflatten(buffer, size, fds, count);
         }
     };
     status_t write(const FlattenableHelperInterface& val);
@@ -316,12 +315,6 @@ public:
 // ---------------------------------------------------------------------------
 
 template<typename T>
-status_t Parcel::write(const Flattenable<T>& val) {
-    const FlattenableHelper<T> helper(val);
-    return write(helper);
-}
-
-template<typename T>
 status_t Parcel::write(const LightFlattenable<T>& val) {
     size_t size(val.getFlattenedSize());
     if (!val.isFixedSize()) {
@@ -337,12 +330,6 @@ status_t Parcel::write(const LightFlattenable<T>& val) {
         return val.flatten(buffer, size);
     }
     return NO_ERROR;
-}
-
-template<typename T>
-status_t Parcel::read(Flattenable<T>& val) const {
-    FlattenableHelper<T> helper(val);
-    return read(helper);
 }
 
 template<typename T>
